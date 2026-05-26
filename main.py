@@ -1,3 +1,5 @@
+import time
+
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -44,6 +46,7 @@ class CNN(nn.Module):
 
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
+print(f"Using device: {device}")
 
 model = CNN(len(train_data.classes)).to(device)
 
@@ -55,6 +58,7 @@ best_acc = 0
 wait = 0
 
 for epoch in range(epochs):
+    start = time.time()
     model.train()
 
     for x, y in train_loader:
@@ -71,6 +75,8 @@ for epoch in range(epochs):
 
         optimizer.step()
 
+    end = time.time()
+    print(f"epoch {epoch + 1} took {end - start:.2f}s")
     model.eval()
 
     correct = 0
