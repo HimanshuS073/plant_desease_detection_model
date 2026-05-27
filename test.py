@@ -44,7 +44,7 @@ classes = [
     "Tomato___healthy",
 ]
 
-image_path = "plant_disease/PlantVillage/train/Apple___Apple_scab/0b1e31fa-cbc0-41ed-9139-c794e6855e82___FREC_Scab 3089.JPG"
+image_path = "images.jpeg"
 
 
 class CNN(nn.Module):
