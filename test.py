@@ -1,12 +1,56 @@
 import torch
 import torch.nn as nn
 from PIL import Image
-from torchvision import datasets, transforms
+from torchvision import transforms
+
+classes = [
+    "Apple___Apple_scab",
+    "Apple___Black_rot",
+    "Apple___Cedar_apple_rust",
+    "Apple___healthy",
+    "Blueberry___healthy",
+    "Cherry_(including_sour)___Powdery_mildew",
+    "Cherry_(including_sour)___healthy",
+    "Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot",
+    "Corn_(maize)___Common_rust_",
+    "Corn_(maize)___Northern_Leaf_Blight",
+    "Corn_(maize)___healthy",
+    "Grape___Black_rot",
+    "Grape___Esca_(Black_Measles)",
+    "Grape___Leaf_blight_(Isariopsis_Leaf_Spot)",
+    "Grape___healthy",
+    "Orange___Haunglongbing_(Citrus_greening)",
+    "Peach___Bacterial_spot",
+    "Peach___healthy",
+    "Pepper,_bell___Bacterial_spot",
+    "Pepper,_bell___healthy",
+    "Potato___Early_blight",
+    "Potato___Late_blight",
+    "Potato___healthy",
+    "Raspberry___healthy",
+    "Soybean___healthy",
+    "Squash___Powdery_mildew",
+    "Strawberry___Leaf_scorch",
+    "Strawberry___healthy",
+    "Tomato___Bacterial_spot",
+    "Tomato___Early_blight",
+    "Tomato___Late_blight",
+    "Tomato___Leaf_Mold",
+    "Tomato___Septoria_leaf_spot",
+    "Tomato___Spider_mites Two-spotted_spider_mite",
+    "Tomato___Target_Spot",
+    "Tomato___Tomato_Yellow_Leaf_Curl_Virus",
+    "Tomato___Tomato_mosaic_virus",
+    "Tomato___healthy",
+]
+
+image_path = "plant_disease/PlantVillage/train/Apple___Apple_scab/0b1e31fa-cbc0-41ed-9139-c794e6855e82___FREC_Scab 3089.JPG"
 
 
 class CNN(nn.Module):
-    def __init__(self, classes):
+    def __init__(self, classes_count):
         super().__init__()
+
         self.model = nn.Sequential(
             nn.Conv2d(3, 32, 3),
             nn.ReLU(),
@@ -17,31 +61,43 @@ class CNN(nn.Module):
             nn.Flatten(),
             nn.Linear(64 * 30 * 30, 128),
             nn.ReLU(),
-            nn.Linear(128, classes),
+            nn.Linear(128, classes_count),
         )
 
     def forward(self, x):
         return self.model(x)
 
 
-device = "cuda" if torch.cuda.is_available() else "cpu"
+model = CNN(len(classes))
 
-train_data = datasets.ImageFolder("plant_disease/PlantVillage/train")
-classes = train_data.classes
+model.load_state_dict(
+    torch.load(
+        "best_cnn.pth",
+        map_location="cpu",
+    )
+)
 
-model = CNN(len(classes)).to(device)
-model.load_state_dict(torch.load("best_cnn.pth", map_location=device))
 model.eval()
 
-t = transforms.Compose([transforms.Resize((128, 128)), transforms.ToTensor()])
+transform = transforms.Compose(
+    [
+        transforms.Resize((128, 128)),
+        transforms.ToTensor(),
+    ]
+)
 
-img_path = "plant_disease/PlantVillage/val/Tomato___Tomato_Yellow_Leaf_Curl_Virus/0a1d1def-462c-46d3-90e6-2a11fcb45a21___UF.GRC_YLCV_Lab 01675.JPG"
+img = Image.open(image_path).convert("RGB")
 
-img = Image.open(img_path).convert("RGB")
-x = t(img).unsqueeze(0).to(device)
+img = transform(img)
+
+img = img.unsqueeze(0)
 
 with torch.no_grad():
-    out = model(x)
-    pred = torch.argmax(out, 1).item()
+    pred = model(img)
 
-print(classes[pred])
+    prob = torch.softmax(pred, dim=1)
+
+    conf, index = torch.max(prob, 1)
+
+print("class:", classes[index.item()])
+print("confidence:", round(conf.item() * 100, 2), "%")
